@@ -246,43 +246,51 @@ class EEGDataProcessor:
         
         return car_data
     
-    def correlation_selection_per_digit(self, data, labels, correlation_threshold=0.7):
+    def correlation_selection_per_digit(self, data, labels, correlation_threshold=0.3):
         """
         CAR correlation selection method berdasarkan paper:
         1. Untuk setiap digit, hitung average signal dari semua 14 channels
         2. Hitung correlation coefficient pearson antara setiap channel dan mean signal
-        3. Pilih samples dengan pearson correlation > 0.7 (adjusted for synthetic data)
+        3. Pilih samples dengan pearson correlation > 0.3 (adjusted for synthetic data)
         """
         selected_data = []
         selected_labels = []
-        
+        total_samples = 0
+        selected_samples = 0
+
         for digit in range(10):
             digit_indices = np.where(labels == digit)[0]
             if len(digit_indices) == 0:
                 continue
-                
+
             digit_data = data[digit_indices]
-            
+
             for sample in digit_data:
+                total_samples += 1
                 # Hitung mean signal dari semua 14 channels
                 mean_signal = np.mean(sample, axis=0)  # (256,)
-                
+
                 # Hitung korelasi setiap channel dengan mean signal
                 correlations = []
                 for ch_idx in range(sample.shape[0]):
                     channel_signal = sample[ch_idx]
-                    
+
                     if np.std(channel_signal) > 0 and np.std(mean_signal) > 0:
                         corr, _ = pearsonr(channel_signal, mean_signal)
                         correlations.append(corr)
                     else:
                         correlations.append(0.0)
-                
+
                 # Periksa apakah ada correlation > threshold
-                if np.any(np.array(correlations) > correlation_threshold):
+                max_corr = np.max(correlations) if correlations else 0.0
+                if max_corr > correlation_threshold:
                     selected_data.append(sample)
                     selected_labels.append(digit)
-        
+                    selected_samples += 1
+
+        print(f"   Correlation selection: {selected_samples}/{total_samples} samples passed")
+        print(f"   Max correlation found: {np.max([np.max([pearsonr(sample[ch], np.mean(sample, axis=0))[0] for ch in range(sample.shape[0])]) for sample in data[:10]]) if len(data) > 0 else 0:.3f}")
+
         return np.array(selected_data), np.array(selected_labels)
     
     def select_channels_t7_p7_t8_p8(self, data, channel_names=None):
@@ -405,10 +413,10 @@ class EEGDataProcessor:
         snr_before = self.calculate_snr(car_data)
         print(f"   SNR before CAR selection: {snr_before:.3f}")
         
-        # 5. CAR correlation selection (ρ > 0.7)
-        print("5. CAR correlation selection (ρ > 0.7)...")
+        # 5. CAR correlation selection (ρ > 0.3)
+        print("5. CAR correlation selection (ρ > 0.3)...")
         selected_data, selected_labels = self.correlation_selection_per_digit(
-            car_data, clean_labels, correlation_threshold=0.7
+            car_data, clean_labels, correlation_threshold=0.3
         )
         print(f"   Data after CAR selection: {selected_data.shape}")
         
