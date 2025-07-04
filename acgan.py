@@ -41,7 +41,7 @@ class EEGDataProcessor:
         - device: "EP" 
         - channels: "AF3", "F7", "F3", "FC5", "T7", "P7", "O1", "O2", "P8", "T8", "FC6", "F4", "F8", "AF4"
         - code: 0-9 untuk digits, -1 untuk random
-        - size: ~256 values (2 seconds × 128Hz)
+        - size: ~256 values (2 seconds x 128Hz)
         - data: comma-separated real numbers
         """
         if target_channels is None:
@@ -250,8 +250,8 @@ class EEGDataProcessor:
         """
         CAR correlation selection method berdasarkan paper:
         1. Untuk setiap digit, hitung average signal dari semua 14 channels
-        2. Hitung correlation coefficient ρ antara setiap channel dan mean signal
-        3. Pilih samples dengan ρ > 0.9
+        2. Hitung correlation coefficient pearson antara setiap channel dan mean signal
+        3. Pilih samples dengan pearson correlation > 0.9
         """
         selected_data = []
         selected_labels = []
