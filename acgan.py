@@ -217,22 +217,22 @@ class EEGDataProcessor:
         
         return filtered_data
     
-    def remove_artifacts_mne(self, data, threshold=100):
+    def remove_artifacts_mne(self, data, threshold=200):
         """
         Remove epochs menggunakan MNE package functionality
-        Maximum 100µV peak-to-peak threshold
+        Maximum 200µV peak-to-peak threshold (adjusted for synthetic data)
         """
         # Hitung peak-to-peak amplitude
         peak_to_peak = np.max(data, axis=-1) - np.min(data, axis=-1)
-        
+
         # Identifikasi epochs yang exceed threshold
         artifact_mask = np.any(peak_to_peak > threshold, axis=1)
-        
+
         clean_data = data[~artifact_mask]
         clean_indices = np.where(~artifact_mask)[0]
-        
+
         print(f"   Removed {np.sum(artifact_mask)} epochs due to artifacts (>{threshold}µV)")
-        
+
         return clean_data, clean_indices
     
     def common_average_reference(self, data):
@@ -246,12 +246,12 @@ class EEGDataProcessor:
         
         return car_data
     
-    def correlation_selection_per_digit(self, data, labels, correlation_threshold=0.9):
+    def correlation_selection_per_digit(self, data, labels, correlation_threshold=0.7):
         """
         CAR correlation selection method berdasarkan paper:
         1. Untuk setiap digit, hitung average signal dari semua 14 channels
         2. Hitung correlation coefficient pearson antara setiap channel dan mean signal
-        3. Pilih samples dengan pearson correlation > 0.9
+        3. Pilih samples dengan pearson correlation > 0.7 (adjusted for synthetic data)
         """
         selected_data = []
         selected_labels = []
@@ -394,8 +394,8 @@ class EEGDataProcessor:
         filtered_data = self.bandpass_filter(filtered_data)
         
         # 3. MNE artifact removal
-        print("3. Removing artifacts using MNE functionality (100µV threshold)...")
-        clean_data, clean_indices = self.remove_artifacts_mne(filtered_data)
+        print("3. Removing artifacts using MNE functionality (200µV threshold)...")
+        clean_data, clean_indices = self.remove_artifacts_mne(filtered_data, threshold=200)
         clean_labels = labels[clean_indices]
         print(f"   Data after MNE thresholding: {clean_data.shape}")
         
@@ -405,10 +405,10 @@ class EEGDataProcessor:
         snr_before = self.calculate_snr(car_data)
         print(f"   SNR before CAR selection: {snr_before:.3f}")
         
-        # 5. CAR correlation selection (ρ > 0.9)
-        print("5. CAR correlation selection (ρ > 0.9)...")
+        # 5. CAR correlation selection (ρ > 0.7)
+        print("5. CAR correlation selection (ρ > 0.7)...")
         selected_data, selected_labels = self.correlation_selection_per_digit(
-            car_data, clean_labels, correlation_threshold=0.9
+            car_data, clean_labels, correlation_threshold=0.7
         )
         print(f"   Data after CAR selection: {selected_data.shape}")
         
