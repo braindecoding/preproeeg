@@ -1,24 +1,64 @@
-# preproeeg
-Prapemrosesan Sinyal EEG (Preprocessing) 🧠
+# AC-GAN
 
-Tahap ini adalah yang paling penting untuk memastikan sinyal yang dianalisis bersih dari gangguan (noise) dan siap untuk diekstraksi fiturnya. Berikut langkah-langkah yang dilakukan:
+## 🎯 **Interpretasi Terbaik yang Diimplementasikan:**
 
-Penghilangan Noise: Sinyal EEG mentah sangat rentan terhadap noise dari berbagai sumber (misalnya, gerakan otot, kedipan mata, interferensi listrik). Untuk membersihkannya, dua jenis filter digital digunakan:
+### **1. Resolusi Inkonsistensi Input Shape**
+- **Problem**: Paper menunjukkan input `(None, 9, 32, 1)` tapi menggunakan 4 channels
+- **Solusi**: Setiap channel (T7, P7, T8, P8) diproses terpisah dengan 9 windows
+- **Result**: Input ke CNN adalah `(9, 32, 1)` per channel
 
-Filter Butterworth Low-Pass Orde Kelima: Filter ini digunakan untuk menghilangkan frekuensi tinggi yang tidak relevan dengan aktivitas otak, dengan frekuensi cut-off diatur pada 100 Hz.
+### **2. Sliding Window Logic yang Benar**
+- **From**: 256 timepoints × 4 channels 
+- **To**: 9 windows × 32 timepoints × 1 channel
+- **Method**: Sliding window dengan overlap 4 samples
+- **Output**: `(n_samples × 4_channels, 9, 32, 1)`
 
-Notch Filter 50 Hz: Filter ini secara spesifik menargetkan dan menghilangkan noise dari interferensi jaringan listrik, yang umumnya berada pada frekuensi 50 Hz.
+### **3. CNN Architecture yang Masuk Akal**
+- **Fixed**: Kernel sizes yang tidak konsisten dalam paper
+- **Solution**: Menggunakan kernel yang logis untuk input shape
+- **Maintained**: Struktur layer dan hyperparameter yang disebutkan
 
-Dekomposisi Sinyal menjadi Sub-band: Setelah bersih, sinyal EEG dipecah menjadi enam pita frekuensi (sub-band) yang berbeda. Setiap pita frekuensi ini diketahui berkaitan dengan kondisi kognitif dan motorik yang berbeda. Proses ini menggunakan filter Butterworth bandpass:
+### **4. Preprocessing Pipeline yang Konsisten**
+```
+Raw Data (n_samples, 14_channels, 256_timepoints)
+    ↓ Notch Filter (50Hz)
+    ↓ Bandpass Filter (0.4-60Hz)
+    ↓ MNE Artifact Removal (100µV)
+    ↓ Common Average Reference
+    ↓ Correlation Selection (ρ > 0.9)
+    ↓ Channel Selection (T7, P7, T8, P8)
+    ↓ Sliding Windows (9 × 32)
+Final Data (n_samples×4, 9, 32, 1)
+```
 
-Delta (δ): 0.5–4 Hz
+### **5. Hyperparameter Sesuai Paper**
+- ✅ Adam optimizer (lr=0.001, β₁=0.8)
+- ✅ Batch size 128
+- ✅ Max epochs 150
+- ✅ Dropout 0.1
+- ✅ L2 regularization
+- ✅ BatchNormalization placement
 
-Theta (θ): 4–8 Hz
+## 🔧 **Keunggulan Implementasi Ini:**
 
-Alpha (α): 8–13 Hz
+1. **Consistent Logic**: Menyelesaikan inkonsistensi dalam paper
+2. **Realistic Data Flow**: Pipeline yang masuk akal untuk EEG processing
+3. **Proper Dimensionality**: Input/output shapes yang konsisten
+4. **Complete Pipeline**: Dari raw data hingga latent vectors
+5. **Comprehensive Logging**: Tracking setiap tahap preprocessing
 
-Beta Rendah (β₁): 13–20 Hz
+## 📊 **Expected Results:**
+- **Classification Accuracy**: ~92% (target dari paper)
+- **Latent Vectors**: 128-dimensional untuk GAN input
+- **Data Reduction**: Sesuai dengan Table 1 dalam paper
+- **SNR Improvement**: Before/after CAR selection
 
-Beta Tinggi (β₂): 20–30 Hz
+## 🚀 **Ready for GAN Training:**
+Latent vectors yang dihasilkan (128-dimensional) siap untuk:
+- AC-GAN training
+- Image reconstruction
+- MNIST digit generation
 
-Gamma (γ): 30–100 Hz
+Implementation ini memberikan **interpretasi terbaik** yang menyelesaikan inkonsistensi dalam paper sambil mempertahankan esensi metodologi yang dijelaskan oleh penulis.
+
+https://www.scitepress.org/Papers/2025/131493/131493.pdf#page=9.53
